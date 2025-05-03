@@ -4,6 +4,7 @@ import os
 
 app = Flask(__name__)
 DOWNLOADS_DIR = "videos"
+COOKIES_FILE = "cookies.txt"  # Nome do arquivo de cookies
 
 @app.route('/')
 def index():
@@ -22,6 +23,7 @@ def baixar_video():
             'outtmpl': f'{DOWNLOADS_DIR}/%(title)s.%(ext)s',  # Define o local de saída para o vídeo
             'noplaylist': True,  # Impede o download de playlists
             'quiet': False,  # Habilita log para facilitar o debug, se necessário
+            'cookiefile': COOKIES_FILE,  # Refere-se ao arquivo de cookies
         }
 
         # Inicializando o yt-dlp com as opções definidas
