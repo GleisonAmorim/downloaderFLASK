@@ -1,64 +1,74 @@
-from flask import Flask, render_template, request, send_file
+from flask import Flask, request, jsonify, send_from_directory, render_template
 import yt_dlp
 import os
-import uuid
 
 app = Flask(__name__)
-
-DOWNLOAD_FOLDER = "downloads"
-os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
+DOWNLOADS_DIR = "videos"
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template("index.html")
 
-@app.route('/formats', methods=['POST'])
-def get_formats():
-    url = request.form['url']
+@app.route('/baixar', methods=['POST'])
+def baixar_video():
+    data = request.get_json()
+    url = data.get('url')
+    if not url:
+        return jsonify(success=False, error="URL não fornecida")
 
-    ydl_opts = {
-        'quiet': True,
-        'skip_download': True,
-        'forcejson': True
-    }
+    try:
+        # Definindo opções do yt-dlp para buscar os formatos disponíveis
+        ydl_opts = {
+            'outtmpl': f'{DOWNLOADS_DIR}/%(title)s.%(ext)s',  # Define o local de saída para o vídeo
+            'noplaylist': True,  # Impede o download de playlists
+            'quiet': False,  # Habilita log para facilitar o debug, se necessário
+        }
 
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        try:
+        # Inicializando o yt-dlp com as opções definidas
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            # Obtendo as informações do vídeo sem baixar inicialmente
             info = ydl.extract_info(url, download=False)
-            formats = []
-            for f in info['formats']:
-                if 'format_id' in f and f.get('vcodec') != 'none':
-                    formats.append({
-                        'format_id': f['format_id'],
-                        'resolution': f.get('resolution') or f"{f.get('height', 'audio')}p",
-                        'ext': f.get('ext'),
-                        'filesize': f.get('filesize', 0)
-                    })
 
-            return render_template('formats.html', formats=formats, url=url, title=info['title'])
-        except Exception as e:
-            return f"Erro ao obter formatos: {e}"
+            # Listando todos os formatos disponíveis
+            formats = info.get('formats', [])
+            print("Formatos disponíveis:", formats)
 
-@app.route('/download', methods=['POST'])
-def download_video():
-    url = request.form['url']
-    format_id = request.form['format_id']
-    filename = f"{uuid.uuid4()}.mp4"
-    filepath = os.path.join(DOWNLOAD_FOLDER, filename)
+            # Verificando se existe um formato mp4 de alta qualidade
+            best_format = None
+            for format in formats:
+                if format['ext'] == 'mp4' and format['vcodec'] != 'none' and format['acodec'] != 'none':
+                    best_format = format
+                    break
 
-    ydl_opts = {
-        'format': format_id,
-        'outtmpl': filepath
-    }
+            if not best_format:
+                # Se não encontrar o formato MP4 com vídeo e áudio, pega o melhor formato disponível
+                best_format = max(
+                    (f for f in formats if f.get('height') is not None),  # Filtra formatos com 'height' válida
+                    key=lambda f: f['height'],  # Compara pela altura
+                    default=None
+                )
 
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        try:
-            ydl.download([url])
-            return send_file(filepath, as_attachment=True)
-        except Exception as e:
-            return f"Erro ao baixar o vídeo: {e}"
+            if best_format is None:
+                raise ValueError("Nenhum formato válido encontrado para o vídeo.")
+
+            # Usando o melhor formato encontrado para o download
+            ydl_opts['format'] = best_format['format_id']
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                # Realiza o download do vídeo
+                info = ydl.extract_info(url, download=True)
+                filename = ydl.prepare_filename(info)  # Prepara o nome do arquivo
+                filename_only = os.path.basename(filename)  # Extrai o nome do arquivo sem o caminho completo
+
+        return jsonify(success=True, filename=f'/videos/{filename_only}')  # Retorna o caminho para o arquivo baixado
+
+    except Exception as e:
+        print("Erro:", e)
+        return jsonify(success=False, error=str(e))  # Retorna o erro se houver
+
+@app.route('/videos/<path:filename>')
+def servir_video(filename):
+    return send_from_directory(DOWNLOADS_DIR, filename)  # Serve o vídeo após o download
 
 if __name__ == '__main__':
-    #app.run(debug=True)
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host= '0.0.0.0', port = port)
+    os.makedirs(DOWNLOADS_DIR, exist_ok=True)  # Cria a pasta de vídeos caso não exista
+    app.run(debug=True)  # Inicia o servidor Flask
