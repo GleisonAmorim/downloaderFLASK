@@ -1,6 +1,119 @@
-<form method="post" action="/formats">
-    <label>URL do YouTube:</label><br>
-    <input type="text" name="url" style="width: 400px;">
-    <br><br>
-    <input type="submit" value="Buscar formatos">
-</form>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Baixar Vídeo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 300px;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #007BFF;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .message {
+            margin-top: 20px;
+            text-align: center;
+            color: #28a745;
+        }
+
+        .error {
+            color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Baixar Vídeo</h1>
+    <input type="text" id="videoUrl" placeholder="Cole a URL do vídeo aqui">
+    <button onclick="baixarVideo()">Baixar</button>
+
+    <div class="message" id="message"></div>
+</div>
+
+<script>
+    function baixarVideo() {
+        var url = document.getElementById("videoUrl").value;
+        var messageDiv = document.getElementById("message");
+        messageDiv.innerHTML = ''; // Limpar mensagens anteriores
+
+        if (url.trim() === "") {
+            messageDiv.innerHTML = "Por favor, insira uma URL válida.";
+            messageDiv.className = 'error';
+            return;
+        }
+
+        // Mostrar uma mensagem de "aguarde"
+        messageDiv.innerHTML = "Baixando... Aguarde.";
+        messageDiv.className = '';
+
+        fetch('/baixar', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ url: url }),
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Exibir link para o vídeo baixado
+                messageDiv.innerHTML = `Vídeo baixado com sucesso! <a href="${data.filename}" download>Clique aqui para baixar.</a>`;
+                messageDiv.className = '';
+            } else {
+                messageDiv.innerHTML = `Erro: ${data.error}`;
+                messageDiv.className = 'error';
+            }
+        })
+        .catch(error => {
+            messageDiv.innerHTML = "Ocorreu um erro ao baixar o vídeo. Tente novamente.";
+            messageDiv.className = 'error';
+        });
+    }
+</script>
+
+</body>
+</html>
