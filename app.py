@@ -4,6 +4,7 @@ import os
 
 app = Flask(__name__)
 DOWNLOADS_DIR = "videos"
+COOKIES_FILE = "cookies_youtube.txt"  # Nome do arquivo de cookies
 
 @app.route('/')
 def index():
