@@ -18,22 +18,21 @@ def baixar_video():
         return jsonify(success=False, error="URL não fornecida")
 
     try:
-        # Definindo opções do yt-dlp para buscar os formatos disponíveis
-        ydl_opts = {
+        if not os.path.isfile(COOKIES_FILE):
+            raise FileNotFoundError(f"Arquivo de cookies não encontrado: {COOKIES_FILE}")
+
+        # Opções para extração de info
+        ydl_opts_info = {
             'outtmpl': f'{DOWNLOADS_DIR}/%(title)s.%(ext)s',
             'noplaylist': True,
             'quiet': False,
-            'cookiefile': COOKIES_FILE  # Arquivo de cookies incluído aqui
+            'cookiefile': COOKIES_FILE,
         }
 
-        # Inicializando o yt-dlp com as opções definidas
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        with yt_dlp.YoutubeDL(ydl_opts_info) as ydl:
             info = ydl.extract_info(url, download=False)
-
             formats = info.get('formats', [])
-            print("Formatos disponíveis:")
-            for f in formats:
-                print(f"{f.get('format_id')} - {f.get('ext')} - {f.get('resolution')}")
+            print("Formatos disponíveis:", formats)
 
             best_format = None
             for format in formats:
@@ -51,10 +50,16 @@ def baixar_video():
             if best_format is None:
                 raise ValueError("Nenhum formato válido encontrado para o vídeo.")
 
-            ydl_opts['format'] = best_format['format_id']
+        # Opções para download real
+        ydl_opts_download = {
+            'outtmpl': f'{DOWNLOADS_DIR}/%(title)s.%(ext)s',
+            'noplaylist': True,
+            'quiet': False,
+            'cookiefile': COOKIES_FILE,
+            'format': best_format['format_id'],
+        }
 
-        # Baixa o vídeo com o formato selecionado
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        with yt_dlp.YoutubeDL(ydl_opts_download) as ydl:
             info = ydl.extract_info(url, download=True)
             filename = ydl.prepare_filename(info)
             filename_only = os.path.basename(filename)
