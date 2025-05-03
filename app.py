@@ -56,7 +56,7 @@ def baixar_video():
             'noplaylist': True,
             'quiet': False,
             'cookiefile': COOKIES_FILE,
-            'format': best_format['format_id'],
+            ydl_opts['format'] = 'bestvideo+bestaudio/best'
         }
 
         with yt_dlp.YoutubeDL(ydl_opts_download) as ydl:
