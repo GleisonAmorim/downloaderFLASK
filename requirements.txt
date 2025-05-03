@@ -41,13 +41,11 @@ proglog==0.1.10
 ptyprocess==0.7.0
 Pygments==2.19.1
 pyparsing==3.2.1
-pypiwin32==223
 pyproject_hooks==1.2.0
 python-dateutil==2.9.0.post0
 python-dotenv==1.1.0
 pytube==15.0.0
 pytz==2024.2
-pywin32==310; sys_platform == "win32"
 requests==2.32.3
 requests-oauthlib==2.0.0
 setuptools==80.3.0
