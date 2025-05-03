@@ -1,0 +1,13 @@
+<h2>Escolha a qualidade para baixar: {{ title }}</h2>
+<form method="post" action="/download">
+    <input type="hidden" name="url" value="{{ url }}">
+    <select name="format_id">
+        {% for f in formats %}
+            <option value="{{ f.format_id }}">
+                {{ f.resolution }} - {{ f.ext }} ({{ (f.filesize or 0) // 1024 // 1024 }} MB)
+            </option>
+        {% endfor %}
+    </select>
+    <br><br>
+    <input type="submit" value="Baixar vídeo">
+</form>
